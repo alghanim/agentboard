@@ -19,14 +19,21 @@ Config-driven agent discovery — no hardcoding required.
 cp agents.yaml.example agents.yaml
 cp .env.example .env
 
-# 2. Edit agents.yaml to define your team
-# Edit .env if you need non-default settings
+# 2. Set your OpenClaw directory in .env  ← REQUIRED
+#    This is how AgentBoard reads your agent souls, memory, and live activity
+echo "OPENCLAW_DIR=$HOME/.openclaw" >> .env
 
-# 3. Run with Docker Compose
-docker-compose up --build
+# 3. Edit agents.yaml to define your team structure
+#    Match the agent IDs to your workspace-{id} folder names under ~/.openclaw/
 
-# API is now live at http://localhost:8891
+# 4. Run with Docker Compose
+docker compose up --build
+
+# Dashboard is now live at http://localhost:8891
 ```
+
+> **Important:** `OPENCLAW_DIR` must point to your OpenClaw data directory (default: `~/.openclaw`).
+> Without it, the Soul Viewer and live activity feed won't load agent data.
 
 ## Configuration
 
