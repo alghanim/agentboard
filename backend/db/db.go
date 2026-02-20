@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/alghanim/agentboard/backend/config"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 var DB *sql.DB
@@ -84,11 +84,23 @@ func UpsertAgentsFromConfig(agents []config.Agent) error {
 			team_color   = EXCLUDED.team_color,
 			is_lead      = EXCLUDED.is_lead`
 
+	configIDs := make([]string, 0, len(agents))
 	for _, a := range agents {
 		if _, err := DB.Exec(query, a.ID, a.Name, a.Emoji, a.Role, a.Team, a.TeamColor, a.IsLead); err != nil {
 			return fmt.Errorf("upsert agent %q: %w", a.ID, err)
 		}
+		configIDs = append(configIDs, a.ID)
 	}
 	log.Printf("✅ Seeded %d agents from config into DB", len(agents))
+
+	// Remove agents that are no longer in the config.
+	res, err := DB.Exec(`DELETE FROM agents WHERE id != ALL($1)`, pq.Array(configIDs))
+	if err != nil {
+		return fmt.Errorf("delete stale agents: %w", err)
+	}
+	if removed, _ := res.RowsAffected(); removed > 0 {
+		log.Printf("🧹 Removed %d stale agent(s) from DB (not in config)", removed)
+	}
+
 	return nil
 }
