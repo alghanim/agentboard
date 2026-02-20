@@ -74,6 +74,10 @@ func (h *ActivityHandler) GetActivity(w http.ResponseWriter, r *http.Request) {
 		activity.Details = models.NullStringToPtr(details)
 		activities = append(activities, activity)
 	}
+	if err := rows.Err(); err != nil {
+		respondError(w, http.StatusInternalServerError, "row iteration error: "+err.Error())
+		return
+	}
 
 	respondJSON(w, http.StatusOK, activities)
 }

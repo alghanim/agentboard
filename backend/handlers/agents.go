@@ -48,6 +48,10 @@ func (h *AgentHandler) GetAgents(w http.ResponseWriter, r *http.Request) {
 
 		agents = append(agents, agent)
 	}
+	if err := rows.Err(); err != nil {
+		respondError(w, http.StatusInternalServerError, "row iteration error: "+err.Error())
+		return
+	}
 
 	respondJSON(w, http.StatusOK, agents)
 }
@@ -118,6 +122,10 @@ func (h *AgentHandler) GetAgentActivity(w http.ResponseWriter, r *http.Request) 
 		activity.Details = models.NullStringToPtr(details)
 		activities = append(activities, activity)
 	}
+	if err := rows.Err(); err != nil {
+		respondError(w, http.StatusInternalServerError, "row iteration error: "+err.Error())
+		return
+	}
 
 	respondJSON(w, http.StatusOK, activities)
 }
@@ -149,6 +157,10 @@ func (h *AgentHandler) GetAgentMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 		metrics = append(metrics, metric)
 	}
+	if err := rows.Err(); err != nil {
+		respondError(w, http.StatusInternalServerError, "row iteration error: "+err.Error())
+		return
+	}
 
 	var totalCompleted, totalFailed int
 	var totalTokens int64
@@ -175,6 +187,7 @@ func (h *AgentHandler) GetAgentMetrics(w http.ResponseWriter, r *http.Request) {
 func (h *AgentHandler) UpdateAgentStatus(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB limit
 	var data struct {
 		Status string `json:"status"`
 	}

@@ -156,18 +156,10 @@ Pages.reports = {
     if (!el) return;
     el.innerHTML = '';
 
-    // Generate synthetic data if API not available
+    // Show empty state if no data available
     if (!data || !Array.isArray(data) || data.length === 0) {
-      const days = this._range;
-      data = [];
-      for (let i = days - 1; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        data.push({
-          date: d.toISOString().slice(0, 10),
-          count: Math.floor(Math.random() * 8 + 1)
-        });
-      }
+      el.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-tertiary)">No throughput data available</div>';
+      return;
     }
 
     const margin = { top: 16, right: 16, bottom: 32, left: 40 };
@@ -229,11 +221,11 @@ Pages.reports = {
     if (!el) return;
     el.innerHTML = '';
 
-    // Normalize API response: backend returns {display_name, tasks_completed} shape
-    if (Array.isArray(data) && data.length > 0 && data[0].display_name !== undefined) {
+    // Normalize API response: map all known shapes to {agent, count}
+    if (Array.isArray(data) && data.length > 0) {
       data = data.map(d => ({
-        agent: d.display_name || d.id || 'Unknown',
-        count: d.tasks_completed || 0,
+        agent: d.agent || d.display_name || d.id || 'Unknown',
+        count: d.count ?? d.tasks_completed ?? d.value ?? 0,
       }));
     }
 
@@ -251,7 +243,7 @@ Pages.reports = {
     data = data.slice(0, 10); // max 10 bars
 
     // Guard: if all values are 0, show empty state instead of a collapsed/NaN chart
-    const maxVal = d3.max(data, d => d.value || d.count || 0);
+    const maxVal = d3.max(data, d => d.count || 0);
     if (maxVal === 0) {
       el.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-tertiary)">No data yet</div>';
       return;

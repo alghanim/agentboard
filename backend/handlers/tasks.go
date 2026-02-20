@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/alghanim/agentboard/backend/db"
@@ -61,9 +62,25 @@ func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 			argCount++
 		}
 	}
-	_ = argCount
 
-	query += " ORDER BY created_at DESC"
+	// Pagination — default 100, max 500
+	limit := 100
+	offset := 0
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if v, err := strconv.Atoi(l); err == nil && v > 0 {
+			if v > 500 {
+				v = 500
+			}
+			limit = v
+		}
+	}
+	if o := r.URL.Query().Get("offset"); o != "" {
+		if v, err := strconv.Atoi(o); err == nil && v >= 0 {
+			offset = v
+		}
+	}
+	query += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", argCount, argCount+1)
+	args = append(args, limit, offset)
 
 	rows, err := db.DB.Query(query, args...)
 	if err != nil {
@@ -94,6 +111,10 @@ func (h *TaskHandler) GetTasks(w http.ResponseWriter, r *http.Request) {
 		task.CompletedAt = models.NullTimeToPtr(completedAt)
 
 		tasks = append(tasks, task)
+	}
+	if err := rows.Err(); err != nil {
+		respondError(w, http.StatusInternalServerError, "row iteration error: "+err.Error())
+		return
 	}
 
 	respondJSON(w, http.StatusOK, tasks)
@@ -137,6 +158,7 @@ func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 
 // CreateTask handles POST /api/tasks
 func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB limit
 	var task models.Task
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
@@ -175,6 +197,7 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB limit
 	var task models.Task
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
 		respondError(w, http.StatusBadRequest, err.Error())
@@ -182,7 +205,7 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	}
 	task.ID = id
 
-	_, err := db.DB.Exec(
+	result, err := db.DB.Exec(
 		`UPDATE tasks SET title=$1, description=$2, status=$3, priority=$4,
 		 assignee=$5, team=$6, due_date=$7, parent_task_id=$8, labels=$9
 		 WHERE id=$10`,
@@ -193,6 +216,10 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if n, _ := result.RowsAffected(); n == 0 {
+		respondError(w, http.StatusNotFound, "Task not found")
 		return
 	}
 
@@ -210,8 +237,13 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
-	if _, err := db.DB.Exec(`DELETE FROM tasks WHERE id = $1`, id); err != nil {
+	result, err := db.DB.Exec(`DELETE FROM tasks WHERE id = $1`, id)
+	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if n, _ := result.RowsAffected(); n == 0 {
+		respondError(w, http.StatusNotFound, "Task not found")
 		return
 	}
 
@@ -225,6 +257,7 @@ func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) AssignTask(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB limit
 	var data struct {
 		Assignee string `json:"assignee"`
 	}
@@ -251,6 +284,7 @@ func (h *TaskHandler) AssignTask(w http.ResponseWriter, r *http.Request) {
 func (h *TaskHandler) TransitionTask(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB limit
 	var data struct {
 		Status string `json:"status"`
 	}
@@ -338,6 +372,10 @@ func (h *TaskHandler) GetMyTasks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		tasks = append(tasks, t)
+	}
+	if err := rows.Err(); err != nil {
+		respondError(w, http.StatusInternalServerError, "row iteration error: "+err.Error())
+		return
 	}
 	respondJSON(w, http.StatusOK, tasks)
 }

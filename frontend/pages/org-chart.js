@@ -321,7 +321,7 @@ Pages.orgChart = {
     try {
       const soul = await API.getAgentSoul(this._panelAgentId);
       if (soul.soul) {
-        content.innerHTML = `<div class="markdown-body" style="font-size:13px">${marked.parse(soul.soul.content || '')}</div>`;
+        content.innerHTML = `<div class="markdown-body" style="font-size:13px">${DOMPurify.sanitize(marked.parse(soul.soul.content || ''))}</div>`;
       } else {
         const err = soul.errors?.['SOUL.md'] || 'File not found';
         Utils.showEmpty(content, '📄', 'Soul not available', err);
@@ -338,6 +338,7 @@ Pages.orgChart = {
   },
 
   destroy() {
+    if (this._slidePanel) this._closePanel();
     this._wsHandlers.forEach(([ev, fn]) => WS.off(ev, fn));
     this._wsHandlers = [];
     if (this._refreshTimer) clearInterval(this._refreshTimer);

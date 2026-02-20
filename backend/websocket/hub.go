@@ -65,10 +65,9 @@ func (h *Hub) Broadcast(msgType string, payload interface{}) {
 }
 
 // Run starts the hub event loop.
+// Keep-alives are handled by each client's own WritePump ticker —
+// do NOT add a hub-level ping here (concurrent writes cause data races).
 func (h *Hub) Run() {
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-
 	for {
 		select {
 		case client := <-h.register:
@@ -101,21 +100,6 @@ func (h *Hub) Run() {
 				}
 			}
 			h.mu.RUnlock()
-
-		case <-ticker.C:
-			h.sendPing()
-		}
-	}
-}
-
-func (h *Hub) sendPing() {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	for client := range h.clients {
-		if err := client.Conn.WriteControl(
-			websocket.PingMessage, []byte{}, time.Now().Add(10*time.Second),
-		); err != nil {
-			log.Printf("Ping error for %s: %v", client.ID, err)
 		}
 	}
 }

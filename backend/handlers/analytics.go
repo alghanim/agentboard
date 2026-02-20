@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/csv"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -85,6 +86,10 @@ func (h *AnalyticsHandler) GetAgentAnalytics(w http.ResponseWriter, r *http.Requ
 			"last_active":        lastActive,
 		})
 	}
+	if err := rows.Err(); err != nil {
+		respondError(w, http.StatusInternalServerError, "row iteration error: "+err.Error())
+		return
+	}
 	if results == nil {
 		results = []map[string]interface{}{}
 	}
@@ -127,6 +132,10 @@ func (h *AnalyticsHandler) GetThroughput(w http.ResponseWriter, r *http.Request)
 			"count": count,
 		})
 	}
+	if err := rows.Err(); err != nil {
+		respondError(w, http.StatusInternalServerError, "row iteration error: "+err.Error())
+		return
+	}
 	if results == nil {
 		results = []map[string]interface{}{}
 	}
@@ -164,6 +173,10 @@ func (h *AnalyticsHandler) GetTeamAnalytics(w http.ResponseWriter, r *http.Reque
 			"total":       total,
 		})
 	}
+	if err := rows.Err(); err != nil {
+		respondError(w, http.StatusInternalServerError, "row iteration error: "+err.Error())
+		return
+	}
 	if results == nil {
 		results = []map[string]interface{}{}
 	}
@@ -200,6 +213,10 @@ func (h *AnalyticsHandler) ExportCSV(w http.ResponseWriter, r *http.Request) {
 			ca = completedAt.Format(time.RFC3339)
 		}
 		writer.Write([]string{id, title, desc, status, priority, assignee, team, createdAt.Format(time.RFC3339), updatedAt.Format(time.RFC3339), ca})
+	}
+	if err := rows.Err(); err != nil {
+		// Headers already sent; log and flush what we have
+		log.Printf("ExportCSV row iteration error: %v", err)
 	}
 	writer.Flush()
 }

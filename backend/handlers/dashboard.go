@@ -68,6 +68,10 @@ func (h *DashboardHandler) GetTeamStats(w http.ResponseWriter, r *http.Request) 
 		}
 		teams = append(teams, team)
 	}
+	if err := rows.Err(); err != nil {
+		respondError(w, http.StatusInternalServerError, "row iteration error: "+err.Error())
+		return
+	}
 
 	respondJSON(w, http.StatusOK, teams)
 }

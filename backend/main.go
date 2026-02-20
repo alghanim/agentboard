@@ -69,16 +69,15 @@ func main() {
 	router := mux.NewRouter()
 	api := router.PathPrefix("/api").Subrouter()
 
-	// Task routes
+	// Task routes  — static route MUST come before parameterised {id} route
 	api.HandleFunc("/tasks", taskHandler.GetTasks).Methods("GET")
 	api.HandleFunc("/tasks", taskHandler.CreateTask).Methods("POST")
+	api.HandleFunc("/tasks/mine", taskHandler.GetMyTasks).Methods("GET")
 	api.HandleFunc("/tasks/{id}", taskHandler.GetTask).Methods("GET")
 	api.HandleFunc("/tasks/{id}", taskHandler.UpdateTask).Methods("PUT")
 	api.HandleFunc("/tasks/{id}", taskHandler.DeleteTask).Methods("DELETE")
 	api.HandleFunc("/tasks/{id}/assign", taskHandler.AssignTask).Methods("POST")
 	api.HandleFunc("/tasks/{id}/transition", taskHandler.TransitionTask).Methods("POST")
-
-	api.HandleFunc("/tasks/mine", taskHandler.GetMyTasks).Methods("GET")
 
 	// Comment routes
 	api.HandleFunc("/tasks/{task_id}/comments", commentHandler.GetComments).Methods("GET")

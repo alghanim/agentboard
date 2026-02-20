@@ -115,7 +115,7 @@ Pages.dashboard = {
       const typeLabel = item.type === 'command' ? `ran <code>${Utils.esc(item.toolName)}</code>`
         : item.type === 'response' ? 'sent a response'
         : item.type === 'result' ? 'got a result'
-        : item.type;
+        : Utils.esc(item.type ?? 'unknown');
       return `
         <div class="activity-item activity-item--compact">
           <div class="activity-item__avatar">${Utils.esc(item.emoji || '🤖')}</div>

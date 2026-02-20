@@ -153,7 +153,7 @@ Pages.kanban = {
         const name = a.name || a.displayName || a.id;
         if (agentSel) {
           const opt = document.createElement('option');
-          opt.value = name;
+          opt.value = a.id || name;
           opt.textContent = `${a.emoji || '🤖'} ${name}`;
           agentSel.appendChild(opt);
         }
@@ -369,7 +369,7 @@ Pages.kanban = {
           <div class="drawer-transitions">
             ${this.COLUMNS
               .filter(c => c.id !== task.status)
-              .map(c => `<button class="btn-secondary drawer-transition-btn" onclick="Pages.kanban._drawerTransition('${Utils.esc(task.id)}', '${Utils.esc(c.id)}')">${c.label}</button>`)
+              .map(c => `<button class="btn-secondary drawer-transition-btn" onclick="Pages.kanban._drawerTransition(${JSON.stringify(String(task.id))}, ${JSON.stringify(c.id)})">${c.label}</button>`)
               .join('')}
           </div>
         </div>
@@ -391,7 +391,7 @@ Pages.kanban = {
           <div class="drawer-add-comment">
             <textarea class="input" id="drawerCommentInput" placeholder="Add a comment..." rows="2"
               style="width:100%;height:auto;padding-top:8px;resize:vertical;margin-bottom:8px"></textarea>
-            <button class="btn-primary" onclick="Pages.kanban._submitComment('${Utils.esc(task.id)}')">Post Comment</button>
+            <button class="btn-primary" onclick="Pages.kanban._submitComment(${JSON.stringify(String(task.id))})">Post Comment</button>
           </div>
         </div>`;
     }
