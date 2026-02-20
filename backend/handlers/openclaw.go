@@ -567,7 +567,7 @@ func getOCAgentDetail(agent OCAgent) OCAgentDetail {
 }
 
 func getOCStream(limit int, agentFilter string) []OCStreamEntry {
-	var all []OCStreamEntry
+	all := make([]OCStreamEntry, 0)
 
 	for _, ca := range config.GetAgents() {
 		// Filter by agent_id or name if requested
