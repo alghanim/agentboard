@@ -143,11 +143,19 @@ type SoulFile struct {
 
 // AgentSoulResponse is returned by GET /api/agents/{id}/soul.
 type AgentSoulResponse struct {
-	AgentID string              `json:"agent_id"`
-	Soul    *SoulFile           `json:"soul,omitempty"`
-	Agents  *SoulFile           `json:"agents,omitempty"`
-	Memory  *SoulFile           `json:"memory,omitempty"`
-	Errors  map[string]string   `json:"errors,omitempty"`
+	AgentID   string            `json:"agent_id"`
+	Soul      *SoulFile         `json:"soul,omitempty"`
+	Agents    *SoulFile         `json:"agents,omitempty"`
+	Memory    *SoulFile         `json:"memory,omitempty"`
+	Heartbeat *SoulFile         `json:"heartbeat,omitempty"`
+	Tools     *SoulFile         `json:"tools,omitempty"`
+	Errors    map[string]string `json:"errors,omitempty"`
+}
+
+// SkillInfo represents a single skill/tool available to an agent.
+type SkillInfo struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 // --- Handlers ---
@@ -195,7 +203,8 @@ func (h *OpenClawHandler) GetStream(w http.ResponseWriter, r *http.Request) {
 			limit = n
 		}
 	}
-	writeJSON(w, getOCStream(limit))
+	agentFilter := r.URL.Query().Get("agent_id")
+	writeJSON(w, getOCStream(limit, agentFilter))
 }
 
 func (h *OpenClawHandler) GetStats(w http.ResponseWriter, r *http.Request) {
