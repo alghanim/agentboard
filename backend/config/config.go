@@ -29,12 +29,21 @@ type AgentNode struct {
 	Parent string `yaml:"-"`
 }
 
+// Branding holds the branding configuration from agents.yaml.
+type Branding struct {
+	TeamName    string `yaml:"team_name" json:"team_name"`
+	LogoPath    string `yaml:"logo_path" json:"logo_path"`
+	AccentColor string `yaml:"accent_color" json:"accent_color"`
+	Theme       string `yaml:"theme" json:"theme"`
+}
+
 // AgentsFile is the top-level YAML structure.
 type AgentsFile struct {
 	Name        string       `yaml:"name"`
 	OpenClawDir string       `yaml:"openclaw_dir"`
 	Agents      []*AgentNode `yaml:"agents"`
 	LegacyDirs  map[string][]string `yaml:"legacy_dirs"`
+	Branding    Branding     `yaml:"branding"`
 }
 
 // Agent is a flat agent record (after hierarchy flattening).
@@ -72,6 +81,7 @@ type registry struct {
 	agentByID   map[string]*Agent
 	legacyDirs  map[string][]string
 	hierarchy   []*HierarchyNode
+	branding    Branding
 }
 
 var global = &registry{}
@@ -178,6 +188,15 @@ func (r *registry) load() error {
 		byID[a.ID] = a
 	}
 
+	// Resolve branding defaults
+	branding := af.Branding
+	if branding.TeamName == "" {
+		branding.TeamName = af.Name
+	}
+	if branding.Theme == "" {
+		branding.Theme = "dark"
+	}
+
 	r.mu.Lock()
 	r.teamName = af.Name
 	r.openClawDir = openClawDir
@@ -186,6 +205,7 @@ func (r *registry) load() error {
 	r.agentByID = byID
 	r.legacyDirs = af.LegacyDirs
 	r.hierarchy = hierarchy
+	r.branding = branding
 	r.mu.Unlock()
 
 	log.Printf("[config] Loaded %d agents from %s (openclaw_dir=%s)", len(flat), abs, openClawDir)
@@ -262,6 +282,13 @@ func GetLegacyDirs() map[string][]string {
 		cp[k] = vs
 	}
 	return cp
+}
+
+// GetBranding returns the branding configuration.
+func GetBranding() Branding {
+	global.mu.RLock()
+	defer global.mu.RUnlock()
+	return global.branding
 }
 
 // GetHierarchy returns the full agent hierarchy tree.

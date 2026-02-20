@@ -303,3 +303,41 @@ func (h *TaskHandler) TransitionTask(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, http.StatusOK, map[string]string{"message": "Task status updated"})
 }
+
+// GetMyTasks handles GET /api/tasks/mine?agent_id=ID
+func (h *TaskHandler) GetMyTasks(w http.ResponseWriter, r *http.Request) {
+	agentID := r.URL.Query().Get("agent_id")
+	if agentID == "" {
+		respondError(w, http.StatusBadRequest, "agent_id query parameter is required")
+		return
+	}
+
+	rows, err := db.DB.Query(`
+		SELECT id, title, description, status, priority, assignee, team,
+		       due_date, created_at, updated_at, completed_at, parent_task_id, labels
+		FROM tasks
+		WHERE assignee = $1 AND status IN ('todo', 'progress')
+		ORDER BY CASE WHEN priority = 'critical' THEN 0 WHEN priority = 'urgent' THEN 1
+		              WHEN priority = 'high' THEN 2 WHEN priority = 'medium' THEN 3 ELSE 4 END,
+		         created_at DESC
+	`, agentID)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer rows.Close()
+
+	tasks := []models.Task{}
+	for rows.Next() {
+		var t models.Task
+		err := rows.Scan(&t.ID, &t.Title, &t.Description, &t.Status, &t.Priority,
+			&t.Assignee, &t.Team, &t.DueDate, &t.CreatedAt, &t.UpdatedAt,
+			&t.CompletedAt, &t.ParentTaskID, pq.Array(&t.Labels))
+		if err != nil {
+			respondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		tasks = append(tasks, t)
+	}
+	respondJSON(w, http.StatusOK, tasks)
+}

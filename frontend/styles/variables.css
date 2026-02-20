@@ -2,6 +2,26 @@
 /* Following Prism's UX Spec §2 */
 /* Note: fonts loaded via <link> in index.html */
 
+/* ═══════════════════════════
+   LIGHT THEME OVERRIDES
+   Applied via body.theme-light
+═══════════════════════════ */
+body.theme-light {
+  --bg-primary:    #F8F9FA;
+  --bg-secondary:  #FFFFFF;
+  --bg-tertiary:   #F0F2F5;
+  --bg-elevated:   #FFFFFF;
+  --border-subtle: #E2E8F0;
+  --border-focus:  #CBD5E1;
+  --text-primary:   #1A1A2E;
+  --text-secondary: #4A4A6A;
+  --text-tertiary:  #9090A8;
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.10);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.12);
+}
+
 :root {
   /* BACKGROUND */
   --bg-primary:    #0A0A0F;

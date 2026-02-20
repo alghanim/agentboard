@@ -29,8 +29,8 @@
   <!-- ══════════ SIDEBAR ══════════ -->
   <nav id="sidebar">
     <div class="sidebar-header">
-      <span class="sidebar-logo">🤖</span>
-      <span class="sidebar-title">AgentBoard</span>
+      <span class="sidebar-logo" id="sidebarLogo">🤖</span>
+      <span class="sidebar-title" id="sidebarTitle">AgentBoard</span>
       <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <rect x="2" y="3" width="12" height="1.5" rx="0.75" fill="currentColor"/>
@@ -62,6 +62,10 @@
           <span class="nav-icon">📡</span>
           <span class="nav-label">Activity</span>
         </a>
+        <a class="nav-item" data-nav="reports" href="#reports">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Reports</span>
+        </a>
       </div>
     </div>
 
@@ -80,6 +84,9 @@
     <header id="page-header">
       <span class="page-header-title" id="pageTitle">◉ Dashboard</span>
       <div class="page-breadcrumb" id="pageBreadcrumb" style="display:none"></div>
+      <div class="page-header-actions" style="margin-left:auto;display:flex;align-items:center;gap:8px">
+        <button id="themeToggle" class="btn-icon" title="Toggle light/dark theme" onclick="Theme.toggle()">🌙</button>
+      </div>
     </header>
 
     <!-- Content Area -->
@@ -105,6 +112,7 @@
 <script src="pages/kanban.js"></script>
 <script src="pages/org-chart.js"></script>
 <script src="pages/settings.js"></script>
+<script src="pages/reports.js"></script>
 
 <!-- JS: App (must be last) -->
 <script src="js/app.js"></script>

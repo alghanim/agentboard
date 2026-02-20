@@ -59,6 +59,8 @@ func main() {
 	activityHandler := &handlers.ActivityHandler{}
 	dashboardHandler := &handlers.DashboardHandler{}
 	openclawHandler := &handlers.OpenClawHandler{}
+	analyticsHandler := &handlers.AnalyticsHandler{}
+	brandingHandler := &handlers.BrandingHandler{}
 
 	// Agent status poller
 	go handlers.StartAgentStatusPoller(hub)
@@ -75,6 +77,8 @@ func main() {
 	api.HandleFunc("/tasks/{id}", taskHandler.DeleteTask).Methods("DELETE")
 	api.HandleFunc("/tasks/{id}/assign", taskHandler.AssignTask).Methods("POST")
 	api.HandleFunc("/tasks/{id}/transition", taskHandler.TransitionTask).Methods("POST")
+
+	api.HandleFunc("/tasks/mine", taskHandler.GetMyTasks).Methods("GET")
 
 	// Comment routes
 	api.HandleFunc("/tasks/{task_id}/comments", commentHandler.GetComments).Methods("GET")
@@ -103,6 +107,16 @@ func main() {
 	api.HandleFunc("/openclaw/agents/{name}", openclawHandler.GetAgent).Methods("GET")
 	api.HandleFunc("/openclaw/stream", openclawHandler.GetStream).Methods("GET")
 	api.HandleFunc("/openclaw/stats", openclawHandler.GetStats).Methods("GET")
+
+	// Branding
+	api.HandleFunc("/branding", brandingHandler.GetBranding).Methods("GET")
+
+	// Analytics
+	api.HandleFunc("/analytics/overview", analyticsHandler.GetOverview).Methods("GET")
+	api.HandleFunc("/analytics/agents", analyticsHandler.GetAgentAnalytics).Methods("GET")
+	api.HandleFunc("/analytics/throughput", analyticsHandler.GetThroughput).Methods("GET")
+	api.HandleFunc("/analytics/team", analyticsHandler.GetTeamAnalytics).Methods("GET")
+	api.HandleFunc("/analytics/export/csv", analyticsHandler.ExportCSV).Methods("GET")
 
 	// Structure (hierarchy from config)
 	api.HandleFunc("/structure", openclawHandler.GetStructure).Methods("GET")
