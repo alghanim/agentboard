@@ -71,7 +71,7 @@ Pages.reports = {
       try {
         const params = { days: this._range };
         const qs = new URLSearchParams(params).toString();
-        stats = await apiFetch('/api/analytics/stats?' + qs);
+        stats = await apiFetch('/api/analytics/overview?' + qs);
       } catch (_) {
         // fallback: compute from tasks
         const tasks = await API.getTasks();
@@ -241,6 +241,13 @@ Pages.reports = {
     }
 
     data = data.slice(0, 10); // max 10 bars
+
+    // Guard: if all values are 0, show empty state instead of a collapsed/NaN chart
+    const maxVal = d3.max(data, d => d.value || d.count || 0);
+    if (maxVal === 0) {
+      el.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-tertiary)">No data yet</div>';
+      return;
+    }
 
     const margin = { top: 16, right: 16, bottom: 64, left: 40 };
     const W = el.clientWidth || 320;
