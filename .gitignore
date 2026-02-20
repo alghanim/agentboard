@@ -1,0 +1,15 @@
+# Build artifacts
+backend/agentboard
+agentboard
+
+# Environment
+.env
+
+# Compiled agents config (keep example, not the real one)
+agents.yaml
+
+# Go
+backend/vendor/
+
+# Docker
+*.log

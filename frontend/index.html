@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentBoard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 1.5rem;
+      text-align: center;
+      padding: 2rem;
+    }
+    .logo {
+      font-size: 4rem;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+    }
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #58a6ff, #bc8cff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    p.tagline {
+      color: #8b949e;
+      font-size: 1.1rem;
+      max-width: 480px;
+    }
+    .badge {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 2rem;
+      padding: 0.4rem 1rem;
+      font-size: 0.85rem;
+      color: #58a6ff;
+    }
+    .api-links {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 0.5rem;
+    }
+    a.btn {
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 0.5rem;
+      color: #c9d1d9;
+      text-decoration: none;
+      padding: 0.5rem 1.25rem;
+      font-size: 0.9rem;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    a.btn:hover {
+      background: #30363d;
+      border-color: #58a6ff;
+      color: #58a6ff;
+    }
+    footer {
+      position: fixed;
+      bottom: 1rem;
+      font-size: 0.75rem;
+      color: #484f58;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">🤖</div>
+  <h1>AgentBoard</h1>
+  <p class="tagline">Real-time dashboard for your AI agent team. Frontend coming soon.</p>
+  <span class="badge">⚡ Backend live on port 8891</span>
+  <div class="api-links">
+    <a class="btn" href="/api/structure">🌳 Structure</a>
+    <a class="btn" href="/api/openclaw/agents">👥 Agents</a>
+    <a class="btn" href="/api/openclaw/stats">📊 Stats</a>
+    <a class="btn" href="/api/openclaw/stream">📡 Stream</a>
+    <a class="btn" href="/api/dashboard/stats">🏠 Dashboard</a>
+    <a class="btn" href="/health">💚 Health</a>
+  </div>
+  <footer>AgentBoard — config-driven agent monitoring</footer>
+</body>
+</html>

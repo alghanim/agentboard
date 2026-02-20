@@ -1,0 +1,144 @@
+# AgentBoard — Agent Registry
+# Copy this file to agents.yaml and customise it.
+#
+# Hot-reload without restart: send SIGHUP to the backend process.
+# Override config path: AGENTS_CONFIG=/path/to/agents.yaml
+#
+# Schema:
+#   name        — display name
+#   id          — unique ID used for workspace-{id} directory lookup
+#   emoji       — single emoji
+#   role        — free-form role description
+#   team        — team name (grouping)
+#   team_color  — CSS hex color for this team
+#   is_lead     — whether this agent leads their team
+#   children    — nested child agents (recursive)
+
+name: "Thunder Team"
+openclaw_dir: "/data/openclaw"
+
+agents:
+  - id: titan
+    name: titan
+    emoji: "⚡"
+    role: Operations Director
+    team: Command
+    team_color: "#4A4A4A"
+    is_lead: true
+    children:
+      - id: forge
+        name: forge
+        emoji: "🔨"
+        role: Backend Lead
+        team: Engineering
+        team_color: "#3B82F6"
+        is_lead: true
+        children:
+          - id: arc
+            name: arc
+            emoji: "🔌"
+            role: API Specialist
+            team: Engineering
+            team_color: "#3B82F6"
+
+      - id: pixel
+        name: pixel
+        emoji: "🎨"
+        role: Frontend Lead
+        team: Engineering
+        team_color: "#3B82F6"
+        is_lead: true
+        children:
+          - id: nova
+            name: nova
+            emoji: "✨"
+            role: UI Components
+            team: Engineering
+            team_color: "#3B82F6"
+
+      - id: sentinel
+        name: sentinel
+        emoji: "🛡️"
+        role: QA Gate
+        team: QA
+        team_color: "#EF4444"
+        is_lead: true
+        children:
+          - id: ghost
+            name: ghost
+            emoji: "👻"
+            role: Security Tester
+            team: QA
+            team_color: "#EF4444"
+          - id: cipher
+            name: cipher
+            emoji: "🔐"
+            role: Crypto & Auth
+            team: QA
+            team_color: "#EF4444"
+
+      - id: ink
+        name: ink
+        emoji: "🖋️"
+        role: Reports Lead
+        team: Creative
+        team_color: "#A855F7"
+        is_lead: true
+        children:
+          - id: sage
+            name: sage
+            emoji: "🔮"
+            role: Data Insights
+            team: Creative
+            team_color: "#A855F7"
+          - id: echo
+            name: echo
+            emoji: "📣"
+            role: Comms & Docs
+            team: Creative
+            team_color: "#A855F7"
+
+      - id: chrono
+        name: chrono
+        emoji: "⏱️"
+        role: Timing & Data Lead
+        team: Data
+        team_color: "#F97316"
+        is_lead: true
+        children:
+          - id: drift
+            name: drift
+            emoji: "🌊"
+            role: Stream Processing
+            team: Data
+            team_color: "#F97316"
+          - id: pulse
+            name: pulse
+            emoji: "💓"
+            role: Monitoring
+            team: Data
+            team_color: "#F97316"
+
+      - id: veil
+        name: veil
+        emoji: "🕵️"
+        role: Privacy & Compliance
+        team: Security
+        team_color: "#6B7280"
+
+      - id: onyx
+        name: onyx
+        emoji: "🖤"
+        role: Infrastructure
+        team: Platform
+        team_color: "#374151"
+
+# Legacy directory aliases — if an agent's sessions live under a different
+# directory name in OpenClaw's agents/ folder, list the aliases here.
+legacy_dirs:
+  ink:
+    - reports
+  chrono:
+    - timing
+  forge:
+    - backend

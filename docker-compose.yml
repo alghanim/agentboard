@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: agentboard
+      POSTGRES_USER: agentboard
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-agentboard}
+    volumes:
+      - agentboard_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentboard -d agentboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8891:8891"
+    environment:
+      PORT: "8891"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: agentboard
+      DB_PASSWORD: ${DB_PASSWORD:-agentboard}
+      DB_NAME: agentboard
+      AGENTS_CONFIG: /app/agents.yaml
+      OPENCLAW_DIR: /data/openclaw
+      FRONTEND_DIR: /app/frontend
+    volumes:
+      - ${OPENCLAW_DIR:-~/.openclaw}:/data/openclaw:ro
+      - ./agents.yaml:/app/agents.yaml:ro
+      - ./frontend:/app/frontend:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  agentboard_pgdata:
