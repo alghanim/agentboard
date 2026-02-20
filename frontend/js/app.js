@@ -1,5 +1,95 @@
 /* AgentBoard — Main App Controller */
 
+/* ═══════════════════════════
+   THEME MODULE
+═══════════════════════════ */
+window.Theme = (function () {
+  const LS_KEY = 'agentboard-theme';
+
+  function apply(theme) {
+    if (theme === 'light') {
+      document.body.classList.add('theme-light');
+    } else {
+      document.body.classList.remove('theme-light');
+    }
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+  }
+
+  function current() {
+    return document.body.classList.contains('theme-light') ? 'light' : 'dark';
+  }
+
+  function toggle() {
+    const next = current() === 'light' ? 'dark' : 'light';
+    localStorage.setItem(LS_KEY, next);
+    apply(next);
+  }
+
+  async function init() {
+    // 1. localStorage takes priority
+    const stored = localStorage.getItem(LS_KEY);
+    if (stored) {
+      apply(stored);
+      return;
+    }
+    // 2. fallback: server branding
+    try {
+      const branding = await API.getBranding();
+      apply(branding.theme === 'light' ? 'light' : 'dark');
+    } catch (_) {
+      apply('dark'); // default dark
+    }
+  }
+
+  return { init, apply, toggle, current };
+})();
+
+/* ═══════════════════════════
+   BRANDING MODULE
+═══════════════════════════ */
+window.Branding = (function () {
+  let _data = null;
+
+  async function init() {
+    try {
+      _data = await API.getBranding();
+      apply(_data);
+    } catch (_) {
+      // non-fatal: keep defaults
+    }
+  }
+
+  function apply(b) {
+    if (!b) return;
+    // Document title
+    if (b.team_name) document.title = b.team_name;
+    // Sidebar title
+    const titleEl = document.getElementById('sidebarTitle');
+    if (titleEl && b.team_name) titleEl.textContent = b.team_name;
+    // Sidebar logo
+    const logoEl = document.getElementById('sidebarLogo');
+    if (logoEl && b.logo_path) {
+      logoEl.innerHTML = `<img src="${Utils.esc(b.logo_path)}" alt="logo"
+        style="width:28px;height:28px;object-fit:contain;border-radius:4px">`;
+    }
+    // Accent color
+    if (b.accent_color) {
+      document.documentElement.style.setProperty('--accent', b.accent_color);
+      // derive hover (+10% lightness) and muted (12% opacity) automatically
+      document.documentElement.style.setProperty('--accent-hover', b.accent_color);
+      document.documentElement.style.setProperty('--accent-muted', b.accent_color + '1F');
+    }
+  }
+
+  function getData() { return _data; }
+
+  return { init, getData };
+})();
+
+/* ═══════════════════════════
+   MAIN APP
+═══════════════════════════ */
 (function () {
   let currentPage = null;
   let currentView = null;
@@ -10,10 +100,14 @@
     'org-chart': { title: '🗺️ Org Chart', icon: '🗺️' },
     kanban:     { title: '📋 Kanban', icon: '📋' },
     activity:   { title: '📡 Activity', icon: '📡' },
+    reports:    { title: '📊 Reports', icon: '📊' },
     settings:   { title: '⚙️ Settings', icon: '⚙️' },
   };
 
-  function init() {
+  async function init() {
+    // Init theme & branding in parallel
+    await Promise.all([Theme.init(), Branding.init()]);
+
     // Sidebar toggle
     const toggleBtn = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('sidebar');
@@ -127,6 +221,7 @@
       case 'org-chart':  page = Pages.orgChart; break;
       case 'kanban':     page = Pages.kanban; break;
       case 'activity':   page = Pages.activity; break;
+      case 'reports':    page = Pages.reports; break;
       case 'settings':   page = Pages.settings; break;
       default:
         content.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">Page not found: ${Utils.esc(pageKey)}</div></div>`;

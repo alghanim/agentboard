@@ -1019,3 +1019,322 @@
   font: 400 var(--text-xs)/16px var(--font-body);
   color: var(--text-secondary);
 }
+
+/* ═══════════════════════════
+   KANBAN UX IMPROVEMENTS  §5.4
+═══════════════════════════ */
+
+/* Pulsing green dot for in-progress cards */
+.task-card__header-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.task-card__header-row .task-card__title {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.task-card__progress-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--status-online);
+  flex-shrink: 0;
+  margin-top: 5px;
+  animation: progress-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes progress-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.75); }
+}
+
+/* Agent emoji avatar on cards */
+.task-card__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-size: 14px;
+  flex-shrink: 0;
+  cursor: default;
+}
+
+/* Unassigned ghost badge */
+.task-card__unassigned {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  font: 400 11px/20px var(--font-body);
+  color: var(--text-tertiary);
+  border: 1px dashed var(--border-subtle);
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════
+   TASK DETAIL DRAWER  §5.5
+═══════════════════════════ */
+
+/* Overlay behind drawer */
+.task-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 99;
+  display: none;
+  cursor: default;
+}
+.task-drawer-overlay.visible {
+  display: block;
+}
+
+/* Drawer itself (extends .slide-panel) */
+.task-drawer {
+  width: 400px;
+  padding: 0;
+  z-index: 100;
+}
+
+@media (max-width: 959px) {
+  .task-drawer { width: 100vw; }
+}
+
+.task-drawer__content {
+  padding: 24px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Drawer meta table */
+.drawer-meta {
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+
+.drawer-meta__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 12px;
+}
+.drawer-meta__row:last-child { border-bottom: none; }
+
+.drawer-meta__key {
+  font: 400 var(--text-xs)/16px var(--font-display);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.drawer-meta__val {
+  font: 500 var(--text-sm)/18px var(--font-body);
+  color: var(--text-primary);
+  text-align: right;
+}
+
+/* Drawer sections */
+.drawer-section {
+  margin-bottom: 24px;
+}
+
+.drawer-section__title {
+  font: 600 var(--text-sm)/18px var(--font-body);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 10px;
+}
+
+/* Transition buttons */
+.drawer-transitions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.drawer-transition-btn {
+  font-size: 12px;
+  height: 30px;
+  padding: 0 12px;
+}
+
+/* Comments */
+.drawer-comment {
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.drawer-comment__author {
+  font: 600 var(--text-xs)/16px var(--font-body);
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.drawer-comment__text {
+  font: 400 var(--text-sm)/18px var(--font-body);
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.drawer-comment__time {
+  font: 400 11px/14px var(--font-body);
+  color: var(--text-tertiary);
+}
+
+.drawer-add-comment {
+  margin-top: 12px;
+}
+
+/* ═══════════════════════════
+   REPORTS PAGE  §8
+═══════════════════════════ */
+.reports-page {
+  max-width: 1200px;
+}
+
+.reports-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Date range picker */
+.range-picker {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.range-btn {
+  padding: 8px 16px;
+  font: 500 var(--text-sm)/20px var(--font-body);
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  border-right: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+.range-btn:last-child { border-right: none; }
+.range-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.range-btn.active {
+  background: var(--accent-muted);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* KPI cards */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 959px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+}
+
+.kpi-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 20px 24px;
+  text-align: center;
+  transition: border-color 0.15s;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.kpi-card:hover { border-color: var(--border-focus); }
+
+.kpi-number {
+  font: 700 var(--text-3xl)/40px var(--font-display);
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.kpi-label {
+  font: 400 var(--text-sm)/18px var(--font-body);
+  color: var(--text-secondary);
+}
+
+.kpi-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+}
+
+/* Charts grid */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 959px) {
+  .charts-grid { grid-template-columns: 1fr; }
+}
+
+.chart-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.chart-card--wide {
+  grid-column: 1 / -1;
+}
+
+.chart-card__title {
+  font: 600 var(--text-base)/22px var(--font-body);
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.chart-area {
+  width: 100%;
+  min-height: 200px;
+}
+
+.chart-area--donut {
+  min-height: 220px;
+}
+
+/* Light theme adjustments for charts */
+body.theme-light .org-chart-container {
+  background: var(--bg-tertiary);
+}
+

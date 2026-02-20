@@ -12,6 +12,9 @@ Pages.kanban = {
   _filterTeam: '',
   _searchQuery: '',
   _wsHandlers: [],
+  _escHandler: null,
+  _drawerOpen: false,
+  _currentDrawerTaskId: null,
 
   COLUMNS: [
     { id: 'backlog',  label: 'Backlog' },
@@ -107,7 +110,21 @@ Pages.kanban = {
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Task Detail Drawer -->
+      <div id="taskDrawerOverlay" class="task-drawer-overlay" onclick="Pages.kanban._closeDrawer()"></div>
+      <div id="taskDrawer" class="slide-panel task-drawer" role="dialog" aria-label="Task Detail">
+        <div id="taskDrawerContent" class="task-drawer__content">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
       </div>`;
+
+    // ESC key to close drawer
+    this._escHandler = (e) => {
+      if (e.key === 'Escape') this._closeDrawer();
+    };
+    document.addEventListener('keydown', this._escHandler);
 
     await this._loadAll();
 
@@ -201,11 +218,17 @@ Pages.kanban = {
 
     body.innerHTML = tasks.map(t => this._taskCardHTML(t)).join('');
 
-    // Setup draggable
+    // Setup draggable + click
     body.querySelectorAll('.task-card').forEach(card => {
       card.setAttribute('draggable', 'true');
       card.addEventListener('dragstart', (e) => this._onDragStart(e, card.dataset.taskId, colId));
       card.addEventListener('dragend', () => this._onDragEnd());
+      card.addEventListener('click', (e) => {
+        // Don't open drawer if drag just happened
+        if (!this._justDragged) {
+          this._openDrawer(card.dataset.taskId);
+        }
+      });
     });
   },
 
@@ -234,18 +257,30 @@ Pages.kanban = {
     });
   },
 
+  _isInProgress(status) {
+    return status === 'progress' || status === 'in-progress';
+  },
+
   _taskCardHTML(t) {
     const priority = (t.priority || 'medium').toLowerCase();
     const assignee = t.assignee || t.assigned_to || t.assignedTo || '';
     const agent = this._agents.find(a => a.id === assignee || a.name === assignee);
     const emoji = agent ? (agent.emoji || '🤖') : null;
     const tags = t.labels ? (Array.isArray(t.labels) ? t.labels : [t.labels]) : [];
+    const inProgress = this._isInProgress(t.status);
+
+    const assigneeHTML = assignee
+      ? `<span class="task-card__avatar" title="${Utils.esc(agent?.name || assignee)}">${Utils.esc(emoji || '👤')}</span><span>${Utils.esc(agent?.name || assignee)}</span>`
+      : `<span class="task-card__unassigned">Unassigned</span>`;
 
     return `
       <div class="task-card" data-task-id="${Utils.esc(t.id)}" draggable="true">
-        <div class="task-card__title">${Utils.esc(t.title || 'Untitled')}</div>
+        <div class="task-card__header-row">
+          ${inProgress ? '<span class="task-card__progress-dot" title="In Progress"></span>' : ''}
+          <div class="task-card__title">${Utils.esc(t.title || 'Untitled')}</div>
+        </div>
         <div class="task-card__meta">
-          ${emoji ? `<span>${Utils.esc(emoji)} ${Utils.esc(agent?.name || assignee)}</span>` : assignee ? `<span>👤 ${Utils.esc(assignee)}</span>` : ''}
+          ${assigneeHTML}
           ${priority ? `<span class="${Utils.priorityClass(priority)}">${Utils.capitalize(priority)}</span>` : ''}
           ${t.estimate ? `<span>⏱ ${Utils.esc(t.estimate)}</span>` : ''}
         </div>
@@ -253,16 +288,173 @@ Pages.kanban = {
       </div>`;
   },
 
+  /* ─── Task Detail Drawer ─── */
+  async _openDrawer(taskId) {
+    this._currentDrawerTaskId = taskId;
+    this._drawerOpen = true;
+
+    const drawer = document.getElementById('taskDrawer');
+    const overlay = document.getElementById('taskDrawerOverlay');
+    const content = document.getElementById('taskDrawerContent');
+
+    if (!drawer) return;
+    drawer.classList.add('open');
+    if (overlay) overlay.classList.add('visible');
+    if (content) content.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>Loading...</span></div>';
+
+    // Find task in local state first
+    let task = null;
+    for (const col of this.COLUMNS) {
+      const found = (this._tasks[col.id] || []).find(t => String(t.id) === String(taskId));
+      if (found) { task = found; break; }
+    }
+
+    // Try to fetch full task with comments
+    let comments = [];
+    try {
+      if (!task) task = await API.getTask(taskId);
+    } catch (_) {}
+    try {
+      comments = await API.getComments(taskId);
+    } catch (_) { comments = task?.comments || []; }
+
+    if (!task) {
+      if (content) content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Task not found</div></div>';
+      return;
+    }
+
+    const assignee = task.assignee || task.assigned_to || task.assignedTo || '';
+    const agent = this._agents.find(a => a.id === assignee || a.name === assignee);
+    const colLabel = this.COLUMNS.find(c => c.id === task.status)?.label || task.status || '';
+    const priority = (task.priority || 'medium').toLowerCase();
+
+    if (content) {
+      content.innerHTML = `
+        <div class="slide-panel-header">
+          <div style="flex:1;min-width:0">
+            <div style="font:700 var(--text-xl)/28px var(--font-body);color:var(--text-primary);margin-bottom:4px">${Utils.esc(task.title || 'Untitled')}</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <span class="badge badge--accent">${Utils.esc(colLabel)}</span>
+              <span class="${Utils.priorityClass(priority)}" style="font-size:12px">${Utils.capitalize(priority)}</span>
+            </div>
+          </div>
+          <button class="slide-panel-close" onclick="Pages.kanban._closeDrawer()">✕</button>
+        </div>
+
+        <!-- Meta -->
+        <div class="drawer-meta">
+          <div class="drawer-meta__row">
+            <span class="drawer-meta__key">Assignee</span>
+            <span class="drawer-meta__val">
+              ${assignee
+                ? `${Utils.esc(agent?.emoji || '👤')} ${Utils.esc(agent?.name || assignee)}`
+                : '<span class="task-card__unassigned">Unassigned</span>'}
+            </span>
+          </div>
+          ${task.team ? `<div class="drawer-meta__row"><span class="drawer-meta__key">Team</span><span class="drawer-meta__val">${Utils.esc(task.team)}</span></div>` : ''}
+          ${task.created_at ? `<div class="drawer-meta__row"><span class="drawer-meta__key">Created</span><span class="drawer-meta__val">${Utils.absTime(task.created_at)}</span></div>` : ''}
+          ${task.updated_at ? `<div class="drawer-meta__row"><span class="drawer-meta__key">Updated</span><span class="drawer-meta__val">${Utils.relTime(task.updated_at)}</span></div>` : ''}
+        </div>
+
+        <!-- Description -->
+        ${task.description ? `
+        <div class="drawer-section">
+          <div class="drawer-section__title">Description</div>
+          <div style="color:var(--text-secondary);font-size:var(--text-sm);line-height:20px">${Utils.esc(task.description)}</div>
+        </div>` : ''}
+
+        <!-- Transition Status -->
+        <div class="drawer-section">
+          <div class="drawer-section__title">Move to</div>
+          <div class="drawer-transitions">
+            ${this.COLUMNS
+              .filter(c => c.id !== task.status)
+              .map(c => `<button class="btn-secondary drawer-transition-btn" onclick="Pages.kanban._drawerTransition('${Utils.esc(task.id)}', '${Utils.esc(c.id)}')">${c.label}</button>`)
+              .join('')}
+          </div>
+        </div>
+
+        <!-- Comments -->
+        <div class="drawer-section">
+          <div class="drawer-section__title">Comments (${comments.length})</div>
+          <div id="drawerComments">
+            ${comments.length === 0
+              ? '<div style="color:var(--text-tertiary);font-size:13px">No comments yet</div>'
+              : comments.map(c => `
+                <div class="drawer-comment">
+                  <div class="drawer-comment__author">${Utils.esc(c.author || c.user || 'Unknown')}</div>
+                  <div class="drawer-comment__text">${Utils.esc(c.text || c.body || c.content || '')}</div>
+                  <div class="drawer-comment__time">${Utils.relTime(c.created_at || c.timestamp)}</div>
+                </div>`).join('')}
+          </div>
+          <!-- Add comment -->
+          <div class="drawer-add-comment">
+            <textarea class="input" id="drawerCommentInput" placeholder="Add a comment..." rows="2"
+              style="width:100%;height:auto;padding-top:8px;resize:vertical;margin-bottom:8px"></textarea>
+            <button class="btn-primary" onclick="Pages.kanban._submitComment('${Utils.esc(task.id)}')">Post Comment</button>
+          </div>
+        </div>`;
+    }
+  },
+
+  _closeDrawer() {
+    this._drawerOpen = false;
+    this._currentDrawerTaskId = null;
+    const drawer = document.getElementById('taskDrawer');
+    const overlay = document.getElementById('taskDrawerOverlay');
+    if (drawer) drawer.classList.remove('open');
+    if (overlay) overlay.classList.remove('visible');
+  },
+
+  async _drawerTransition(taskId, newStatus) {
+    try {
+      await API.transitionTask(taskId, newStatus);
+      // Update local state
+      for (const col of this.COLUMNS) {
+        const idx = (this._tasks[col.id] || []).findIndex(t => String(t.id) === String(taskId));
+        if (idx !== -1) {
+          const [task] = this._tasks[col.id].splice(idx, 1);
+          task.status = newStatus;
+          if (!this._tasks[newStatus]) this._tasks[newStatus] = [];
+          this._tasks[newStatus].push(task);
+          break;
+        }
+      }
+      this._renderAll();
+      // Re-open drawer with updated task
+      await this._openDrawer(taskId);
+    } catch (e) {
+      alert('Transition failed: ' + e.message);
+    }
+  },
+
+  async _submitComment(taskId) {
+    const input = document.getElementById('drawerCommentInput');
+    const text = input?.value?.trim();
+    if (!text) return;
+
+    try {
+      await API.addComment(taskId, text);
+      if (input) input.value = '';
+      await this._openDrawer(taskId);
+    } catch (e) {
+      alert('Failed to add comment: ' + e.message);
+    }
+  },
+
   /* ─── Drag & Drop ─── */
   _onDragStart(e, taskId, fromCol) {
     this._draggedTask = taskId;
     this._draggedFrom = fromCol;
+    this._justDragged = false;
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', taskId);
     setTimeout(() => e.target.classList.add('dragging'), 0);
   },
 
   _onDragEnd() {
+    this._justDragged = true;
+    setTimeout(() => { this._justDragged = false; }, 200);
     document.querySelectorAll('.task-card.dragging').forEach(c => c.classList.remove('dragging'));
     document.querySelectorAll('.kanban-column__body.drag-over').forEach(c => c.classList.remove('drag-over'));
     this._draggedTask = null;
@@ -364,5 +556,10 @@ Pages.kanban = {
   destroy() {
     this._wsHandlers.forEach(([ev, fn]) => WS.off(ev, fn));
     this._wsHandlers = [];
+    if (this._escHandler) {
+      document.removeEventListener('keydown', this._escHandler);
+      this._escHandler = null;
+    }
+    this._closeDrawer();
   }
 };
