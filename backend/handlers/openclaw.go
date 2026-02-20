@@ -238,10 +238,17 @@ func (h *OpenClawHandler) GetAgentSoul(w http.ResponseWriter, r *http.Request) {
 		)
 	}
 
+	allowedBase := filepath.Clean(openClawDir)
+
 	var workspaceDir string
 	for _, c := range candidates {
-		if info, err := os.Stat(c); err == nil && info.IsDir() {
-			workspaceDir = c
+		cleanCandidate := filepath.Clean(c)
+		if !strings.HasPrefix(cleanCandidate, allowedBase) {
+			// Reject any candidate that escapes the openclaw directory
+			continue
+		}
+		if info, err := os.Stat(cleanCandidate); err == nil && info.IsDir() {
+			workspaceDir = cleanCandidate
 			break
 		}
 	}
