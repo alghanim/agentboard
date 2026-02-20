@@ -13,3 +13,7 @@ backend/vendor/
 
 # Docker
 *.log
+
+# Internal files
+REVIEW_*.md
+MEETING_*.md
