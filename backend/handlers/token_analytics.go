@@ -94,7 +94,16 @@ func parseJSONLFile(path, agentID string) []tokenMessage {
 			continue
 		}
 
-		usage, ok := entry["usage"].(map[string]interface{})
+		// Usage is nested inside entry["message"]["usage"]
+		innerMsg, _ := entry["message"].(map[string]interface{})
+		if innerMsg == nil {
+			continue
+		}
+		// Only count assistant messages (they carry usage/cost)
+		if role, _ := innerMsg["role"].(string); role != "assistant" {
+			continue
+		}
+		usage, ok := innerMsg["usage"].(map[string]interface{})
 		if !ok {
 			continue
 		}
@@ -102,20 +111,26 @@ func parseJSONLFile(path, agentID string) []tokenMessage {
 		var msg tokenMessage
 		msg.AgentID = agentID
 
-		// Parse timestamp
+		// Parse timestamp (may be at top level or inside message)
+		tsStr := ""
 		if ts, ok := entry["timestamp"].(string); ok {
-			if t, err := time.Parse(time.RFC3339Nano, ts); err == nil {
+			tsStr = ts
+		} else if ts, ok := innerMsg["timestamp"].(string); ok {
+			tsStr = ts
+		}
+		if tsStr != "" {
+			if t, err := time.Parse(time.RFC3339Nano, tsStr); err == nil {
 				msg.Timestamp = t
-			} else if t, err := time.Parse("2006-01-02T15:04:05.000Z", ts); err == nil {
+			} else if t, err := time.Parse("2006-01-02T15:04:05.000Z", tsStr); err == nil {
 				msg.Timestamp = t
 			}
 		}
 		if msg.Timestamp.IsZero() {
-			continue
+			msg.Timestamp = time.Now()
 		}
 
-		// Parse model
-		if m, ok := entry["model"].(string); ok {
+		// Parse model (inside message)
+		if m, ok := innerMsg["model"].(string); ok {
 			msg.Model = m
 		}
 
