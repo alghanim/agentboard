@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/alghanim/agentboard/backend/config"
 	"github.com/alghanim/agentboard/backend/db"
 	"github.com/alghanim/agentboard/backend/handlers"
 	"github.com/alghanim/agentboard/backend/websocket"
@@ -41,6 +42,11 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
+
+	// Seed agents from config into DB (upsert — preserves existing status)
+	if err := db.UpsertAgentsFromConfig(config.GetAgents()); err != nil {
+		log.Printf("⚠️  Failed to seed agents from config: %v", err)
+	}
 
 	// WebSocket hub
 	hub := websocket.NewHub()

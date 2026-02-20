@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/alghanim/agentboard/backend/config"
 	_ "github.com/lib/pq"
 )
 
@@ -66,5 +67,28 @@ func Close() error {
 	if DB != nil {
 		return DB.Close()
 	}
+	return nil
+}
+
+// UpsertAgentsFromConfig seeds the agents table from the config flat list.
+// On conflict (same id) it updates metadata but preserves the existing status.
+func UpsertAgentsFromConfig(agents []config.Agent) error {
+	const query = `
+		INSERT INTO agents (id, display_name, emoji, role, team, team_color, is_lead, status)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, 'offline')
+		ON CONFLICT (id) DO UPDATE SET
+			display_name = EXCLUDED.display_name,
+			emoji        = EXCLUDED.emoji,
+			role         = EXCLUDED.role,
+			team         = EXCLUDED.team,
+			team_color   = EXCLUDED.team_color,
+			is_lead      = EXCLUDED.is_lead`
+
+	for _, a := range agents {
+		if _, err := DB.Exec(query, a.ID, a.Name, a.Emoji, a.Role, a.Team, a.TeamColor, a.IsLead); err != nil {
+			return fmt.Errorf("upsert agent %q: %w", a.ID, err)
+		}
+	}
+	log.Printf("✅ Seeded %d agents from config into DB", len(agents))
 	return nil
 }

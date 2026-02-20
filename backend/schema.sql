@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS agents (
     emoji VARCHAR(10),
     role VARCHAR(255),
     team VARCHAR(100),
+    team_color VARCHAR(50),
     model VARCHAR(255),
     status VARCHAR(50) DEFAULT 'offline',
     current_task_id UUID REFERENCES tasks(id) ON DELETE SET NULL,
@@ -47,6 +48,9 @@ CREATE TABLE IF NOT EXISTS agents (
     is_lead BOOLEAN DEFAULT FALSE,
     CONSTRAINT valid_agent_status CHECK (status IN ('online', 'offline', 'busy', 'idle'))
 );
+
+-- Add team_color if upgrading from older schema
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS team_color VARCHAR(50);
 
 -- Activity Log table
 CREATE TABLE IF NOT EXISTS activity_log (
