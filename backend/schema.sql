@@ -109,6 +109,18 @@ CREATE INDEX IF NOT EXISTS idx_sessions_started ON agent_sessions(started_at);
 
 CREATE INDEX IF NOT EXISTS idx_metrics_agent_date ON agent_metrics(agent_id, date);
 
+-- Task History table (status transition audit trail)
+CREATE TABLE IF NOT EXISTS task_history (
+    id SERIAL PRIMARY KEY,
+    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    from_status VARCHAR(50),
+    to_status VARCHAR(50) NOT NULL,
+    changed_by VARCHAR(100),
+    changed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    note TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_task_history_task_id ON task_history(task_id);
+
 -- Trigger to auto-update updated_at on tasks
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$

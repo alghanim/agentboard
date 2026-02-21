@@ -102,6 +102,20 @@ Pages.dashboard = {
     </div>`;
   },
 
+  _stripMarkdown(text) {
+    return (text || '')
+      .replace(/#{1,6}\s*/g, '')
+      .replace(/\*{1,3}([^*]*)\*{1,3}/g, '$1')
+      .replace(/_{1,3}([^_]*)_{1,3}/g, '$1')
+      .replace(/`{1,3}[^`]*`{1,3}/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
+      .replace(/^[-*+]\s+/gm, '')
+      .replace(/^\d+\.\s+/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  },
+
   _renderActivity(stream) {
     const el = document.getElementById('dashActivityFeed');
     if (!el) return;
@@ -116,6 +130,7 @@ Pages.dashboard = {
         : item.type === 'response' ? 'sent a response'
         : item.type === 'result' ? 'got a result'
         : Utils.esc(item.type ?? 'unknown');
+      const cleanContent = this._stripMarkdown(item.content);
       return `
         <div class="activity-item activity-item--compact">
           <div class="activity-item__avatar">${Utils.esc(item.emoji || '🤖')}</div>
@@ -123,7 +138,7 @@ Pages.dashboard = {
             <div class="activity-item__header">
               <span class="agent-name">${Utils.esc(item.agent)}</span> ${typeLabel}
             </div>
-            <div class="activity-item__detail">${Utils.esc(Utils.truncate(item.content, 80))}</div>
+            <div class="activity-item__detail">${Utils.esc(Utils.truncate(cleanContent, 80))}</div>
           </div>
           <div class="activity-item__time">${Utils.esc(item.timeStr || Utils.relTime(item.timestamp))}</div>
         </div>`;

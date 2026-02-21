@@ -80,6 +80,7 @@ Pages.kanban = {
               <label style="font:500 var(--text-sm)/18px var(--font-body);color:var(--text-secondary);display:block;margin-bottom:6px">Description</label>
               <textarea class="input" id="newTaskDesc" rows="3" placeholder="Description..."
                 style="width:100%;height:auto;padding-top:8px;resize:vertical"></textarea>
+              <span style="font-size:11px;color:var(--text-tertiary);margin-top:4px;display:block">Markdown supported</span>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div>
@@ -360,7 +361,7 @@ Pages.kanban = {
         ${task.description ? `
         <div class="drawer-section">
           <div class="drawer-section__title">Description</div>
-          <div style="color:var(--text-secondary);font-size:var(--text-sm);line-height:20px">${Utils.esc(task.description)}</div>
+          <div class="markdown-body" style="color:var(--text-secondary);font-size:var(--text-sm);line-height:20px">${DOMPurify.sanitize(marked.parse(task.description))}</div>
         </div>` : ''}
 
         <!-- Transition Status -->
@@ -383,7 +384,7 @@ Pages.kanban = {
               : comments.map(c => `
                 <div class="drawer-comment">
                   <div class="drawer-comment__author">${Utils.esc(c.author || c.user || 'Unknown')}</div>
-                  <div class="drawer-comment__text">${Utils.esc(c.text || c.body || c.content || '')}</div>
+                  <div class="drawer-comment__text markdown-body">${DOMPurify.sanitize(marked.parse(c.text || c.body || c.content || ''))}</div>
                   <div class="drawer-comment__time">${Utils.relTime(c.created_at || c.timestamp)}</div>
                 </div>`).join('')}
           </div>

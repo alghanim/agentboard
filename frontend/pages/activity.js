@@ -159,8 +159,23 @@ Pages.activity = {
     };
   },
 
+  _stripMarkdown(text) {
+    return (text || '')
+      .replace(/#{1,6}\s*/g, '')
+      .replace(/\*{1,3}([^*]*)\*{1,3}/g, '$1')
+      .replace(/_{1,3}([^_]*)_{1,3}/g, '$1')
+      .replace(/`{1,3}[^`]*`{1,3}/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
+      .replace(/^[-*+]\s+/gm, '')
+      .replace(/^\d+\.\s+/gm, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  },
+
   _itemHTML(item) {
     const typeLabel = this._typeLabel(item.type, item.toolName);
+    const cleanContent = this._stripMarkdown(item.content);
     return `
       <div class="activity-item">
         <div class="activity-item__avatar">${Utils.esc(item.emoji)}</div>
@@ -168,7 +183,7 @@ Pages.activity = {
           <div class="activity-item__header">
             <span class="agent-name">${Utils.esc(item.agentName)}</span> ${typeLabel}
           </div>
-          <div class="activity-item__detail">${Utils.esc(Utils.truncate(item.content, 120))}</div>
+          <div class="activity-item__detail">${Utils.esc(Utils.truncate(cleanContent, 120))}</div>
         </div>
         <div class="activity-item__time">${Utils.esc(item.timeStr || '')}</div>
       </div>`;
