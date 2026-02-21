@@ -178,7 +178,7 @@ window.Search = (function () {
       tasks.forEach(t => {
         const idx = _items.length;
         _items.push({ action: () => _openTask(t) });
-        const status = t.status || 'todo';
+        const status = t.meta || t.status || 'todo';
         const statusColor = {
           done: '#22C55E', 'in-progress': '#F59E0B', progress: '#F59E0B',
           todo: '#3B82F6', backlog: '#6B7280', review: '#8B5CF6',
