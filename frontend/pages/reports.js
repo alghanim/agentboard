@@ -45,6 +45,22 @@ Pages.reports = {
           </div>
         </div>
 
+        <!-- ═══ Agent Performance Cards ═══ -->
+        <div id="perfSection" style="margin-top:40px;">
+          <div class="section-header" style="margin-bottom:20px;">
+            <span class="section-title">⚡ Agent Performance</span>
+          </div>
+          <div id="perfGrid" style="
+            display:grid;
+            grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+            gap:16px;
+          ">
+            <div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--text-muted);">
+              <div class="spinner" style="display:inline-block;margin-right:8px;"></div>Loading performance data…
+            </div>
+          </div>
+        </div>
+
         <!-- ═══ Token Usage & Cost Section ═══ -->
         <div class="token-section" id="tokenSection" style="margin-top:40px;">
           <div class="section-header">
@@ -91,7 +107,7 @@ Pages.reports = {
   },
 
   async _loadAll() {
-    await Promise.all([this._loadKPIs(), this._loadCharts(), this._loadTokenSection()]);
+    await Promise.all([this._loadKPIs(), this._loadCharts(), this._loadTokenSection(), this._loadPerformance()]);
   },
 
   async _setRange(days, btn) {
@@ -789,6 +805,161 @@ Pages.reports = {
         .attr('text-anchor', 'middle').attr('font-size', '11px').attr('fill', d.color)
         .text(`${d.label}: ${pct}%`);
     });
+  },
+
+  /* ═══════════════════════════════════════════════════════
+     AGENT PERFORMANCE CARDS
+  ═══════════════════════════════════════════════════════ */
+  async _loadPerformance() {
+    const grid = document.getElementById('perfGrid');
+    if (!grid) return;
+
+    let data = [];
+    try {
+      data = await API.getPerformance();
+      if (!Array.isArray(data)) data = [];
+    } catch (_) {
+      // Graceful degradation: try building from tasks + agents
+      try {
+        const [tasks, agents] = await Promise.all([
+          API.getTasks().catch(() => []),
+          API.getAgents().catch(() => []),
+        ]);
+        const now = Date.now();
+        const dayMs  = 24 * 3600 * 1000;
+        const weekMs = 7 * dayMs;
+
+        // Build a map from agent id/name → stats
+        const map = {};
+        (tasks || []).forEach(t => {
+          const key = t.assignee || t.assigned_to || 'unassigned';
+          if (!map[key]) map[key] = { agent_id: key, name: key, tasks_completed_today: 0, tasks_completed_week: 0, tasks_in_progress: 0, tasks_total: 0, avg_completion_hours: 0 };
+          map[key].tasks_total++;
+          const updated = t.updated_at ? new Date(t.updated_at).getTime() : 0;
+          if (t.status === 'done') {
+            if (now - updated < dayMs)  map[key].tasks_completed_today++;
+            if (now - updated < weekMs) map[key].tasks_completed_week++;
+          }
+          if (t.status === 'in-progress' || t.status === 'progress') map[key].tasks_in_progress++;
+        });
+
+        // Enrich with agent emoji/name from agents list
+        (agents || []).forEach(a => {
+          const key = a.id || a.agent_id;
+          if (map[key]) {
+            map[key].name  = a.display_name || a.name || key;
+            map[key].emoji = a.emoji || '🤖';
+            map[key].role  = a.role || '';
+            map[key].status = a.status || '';
+          }
+        });
+
+        data = Object.values(map);
+      } catch (_2) {
+        data = [];
+      }
+    }
+
+    if (data.length === 0) {
+      grid.innerHTML = `<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--text-muted);">No performance data yet</div>`;
+      return;
+    }
+
+    // Sort: most tasks_completed_week first, then alphabetically
+    data.sort((a, b) => (b.tasks_completed_week || 0) - (a.tasks_completed_week || 0) || (a.name || '').localeCompare(b.name || ''));
+
+    grid.innerHTML = data.map(agent => this._perfCard(agent)).join('');
+
+    // Animate progress bars after insert
+    requestAnimationFrame(() => {
+      grid.querySelectorAll('[data-perf-bar]').forEach(bar => {
+        const w = bar.dataset.perfBar;
+        bar.style.width = w;
+      });
+    });
+  },
+
+  _perfCard(a) {
+    const name    = Utils.esc(a.name || a.agent_id || 'Unknown');
+    const emoji   = Utils.esc(a.emoji || '🤖');
+    const role    = Utils.esc(a.role  || a.team || '');
+    const today   = a.tasks_completed_today ?? 0;
+    const week    = a.tasks_completed_week  ?? 0;
+    const inProg  = a.tasks_in_progress     ?? 0;
+    const total   = a.tasks_total           ?? 0;
+    const avgH    = a.avg_completion_hours  != null ? Number(a.avg_completion_hours).toFixed(1) + 'h' : '—';
+
+    const pct     = total > 0 ? Math.min(100, Math.round((inProg / total) * 100)) : 0;
+
+    // Online indicator
+    const isOnline = a.status === 'online' || a.status === 'active';
+    const dotColor = isOnline ? '#22C55E' : 'var(--text-muted)';
+    const dotLabel = isOnline ? 'Online' : (a.status || 'Offline');
+
+    const barColor = pct > 75 ? '#EF4444' : pct > 40 ? '#F59E0B' : 'var(--accent,#B5CC18)';
+
+    return `
+      <div class="perf-card" style="
+        background:var(--bg-secondary);
+        border:1px solid var(--border-primary);
+        border-radius:12px;
+        padding:16px;
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+        transition:box-shadow 150ms;
+      " onmouseenter="this.style.boxShadow='0 0 0 2px var(--accent,#B5CC18)44'"
+        onmouseleave="this.style.boxShadow=''">
+
+        <!-- Header: emoji + name + status -->
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:22px;">${emoji}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+            ${role ? `<div style="font-size:11px;color:var(--text-secondary);">${role}</div>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;white-space:nowrap;">
+            <span style="width:7px;height:7px;border-radius:50%;background:${dotColor};display:inline-block;${isOnline ? 'box-shadow:0 0 4px ' + dotColor + ';' : ''}"></span>
+            <span style="font-size:10px;color:var(--text-muted);">${Utils.esc(dotLabel)}</span>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div style="height:1px;background:var(--border-primary);"></div>
+
+        <!-- Stats trio -->
+        ${total === 0
+          ? `<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:4px 0;">No tasks yet</div>`
+          : `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;gap:4px;">
+              <div>
+                <div style="font-size:20px;font-weight:700;color:var(--text-primary);">${today}</div>
+                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Today</div>
+              </div>
+              <div>
+                <div style="font-size:20px;font-weight:700;color:var(--text-primary);">${week}</div>
+                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Week</div>
+              </div>
+              <div>
+                <div style="font-size:20px;font-weight:700;color:var(--text-primary);">${avgH}</div>
+                <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Avg Time</div>
+              </div>
+            </div>
+
+            <!-- Progress bar: in-progress workload -->
+            <div>
+              <div style="background:var(--bg-tertiary,#0d0d1a);border-radius:99px;height:6px;overflow:hidden;margin-bottom:6px;">
+                <div data-perf-bar="${pct}%" style="
+                  width:0%;
+                  height:100%;
+                  background:${barColor};
+                  border-radius:99px;
+                  transition:width 600ms ease;
+                "></div>
+              </div>
+              <div style="font-size:11px;color:var(--text-secondary);">${inProg} in progress · ${total} total</div>
+            </div>`
+        }
+      </div>`;
   },
 
   _exportCSV() {

@@ -161,6 +161,14 @@ window.Branding = (function () {
       });
     });
 
+    // Global search shortcut: Cmd+K / Ctrl+K
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        if (window.Search) Search.toggle();
+      }
+    });
+
     // Hash-based routing
     window.addEventListener('hashchange', () => {
       const hash = location.hash.slice(1) || 'dashboard';

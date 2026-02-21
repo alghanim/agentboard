@@ -63,6 +63,9 @@ window.API = {
   // Task history
   getTaskHistory: (id) => apiFetch(`/api/tasks/${id}/history`),
 
+  // Search
+  search: (q, limit = 20) => apiFetch(`/api/search?q=${encodeURIComponent(q)}&limit=${limit}`),
+
   // Analytics
   getAnalyticsThroughput: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
@@ -72,6 +75,8 @@ window.API = {
     const qs = new URLSearchParams(params).toString();
     return apiFetch('/api/analytics/agents' + (qs ? '?' + qs : ''));
   },
+  getPerformance: () => apiFetch('/api/analytics/performance'),
+
   exportCSV: () => {
     const a = document.createElement('a');
     a.href = (window.AGENTBOARD_API || '') + '/api/analytics/export/csv';
