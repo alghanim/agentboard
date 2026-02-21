@@ -57,6 +57,12 @@ window.API = {
     body: JSON.stringify({ text })
   }),
 
+  // Stuck tasks
+  getStuckTasks: () => apiFetch('/api/tasks/stuck'),
+
+  // Task history
+  getTaskHistory: (id) => apiFetch(`/api/tasks/${id}/history`),
+
   // Analytics
   getAnalyticsThroughput: (params = {}) => {
     const qs = new URLSearchParams(params).toString();

@@ -269,16 +269,23 @@ Pages.kanban = {
     const emoji = agent ? (agent.emoji || '🤖') : null;
     const tags = t.labels ? (Array.isArray(t.labels) ? t.labels : [t.labels]) : [];
     const inProgress = this._isInProgress(t.status);
+    const isStuck = t.stuck === true;
 
     const assigneeHTML = assignee
       ? `<span class="task-card__avatar" title="${Utils.esc(agent?.name || assignee)}">${Utils.esc(emoji || '👤')}</span><span>${Utils.esc(agent?.name || assignee)}</span>`
       : `<span class="task-card__unassigned">Unassigned</span>`;
 
+    const stuckStyle = isStuck ? 'border-left: 3px solid #F59E0B;' : '';
+    const stuckBadge = isStuck
+      ? `<span style="background:#F59E0B;color:#000;font-size:10px;padding:2px 6px;border-radius:4px;font-weight:700;white-space:nowrap">⚠️ Stuck</span>`
+      : '';
+
     return `
-      <div class="task-card" data-task-id="${Utils.esc(t.id)}" draggable="true">
+      <div class="task-card" data-task-id="${Utils.esc(t.id)}" draggable="true" style="${stuckStyle}">
         <div class="task-card__header-row">
           ${inProgress ? '<span class="task-card__progress-dot" title="In Progress"></span>' : ''}
           <div class="task-card__title">${Utils.esc(t.title || 'Untitled')}</div>
+          ${stuckBadge}
         </div>
         <div class="task-card__meta">
           ${assigneeHTML}
@@ -310,14 +317,18 @@ Pages.kanban = {
       if (found) { task = found; break; }
     }
 
-    // Try to fetch full task with comments
+    // Try to fetch full task with comments and history
     let comments = [];
+    let history = [];
     try {
       if (!task) task = await API.getTask(taskId);
     } catch (_) {}
     try {
       comments = await API.getComments(taskId);
     } catch (_) { comments = task?.comments || []; }
+    try {
+      history = await API.getTaskHistory(taskId);
+    } catch (_) { history = []; }
 
     if (!task) {
       if (content) content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Task not found</div></div>';
@@ -394,8 +405,84 @@ Pages.kanban = {
               style="width:100%;height:auto;padding-top:8px;resize:vertical;margin-bottom:8px"></textarea>
             <button class="btn-primary" onclick="Pages.kanban._submitComment(${JSON.stringify(String(task.id))})">Post Comment</button>
           </div>
+        </div>
+
+        <!-- History Timeline -->
+        <div class="drawer-section">
+          <div class="drawer-section__title">History</div>
+          <div class="drawer-history">
+            ${this._renderHistoryTimeline(task, history)}
+          </div>
         </div>`;
     }
+  },
+
+  _statusColor(status) {
+    const map = {
+      backlog: 'var(--text-tertiary)',
+      todo: 'var(--text-secondary)',
+      progress: '#3B82F6',
+      'in-progress': '#3B82F6',
+      review: '#8B5CF6',
+      done: '#10B981',
+    };
+    return map[(status || '').toLowerCase()] || 'var(--text-secondary)';
+  },
+
+  _renderHistoryTimeline(task, history) {
+    const items = [];
+
+    // Created entry
+    const createdAt = task.created_at;
+    items.push({
+      label: 'Created',
+      time: createdAt,
+      dot: '#6B7280',
+    });
+
+    // Transition entries
+    (history || []).forEach(h => {
+      const fromColor = this._statusColor(h.from_status);
+      const toColor = this._statusColor(h.to_status);
+      const who = h.changed_by ? ` <span style="color:var(--text-tertiary)">(${Utils.esc(h.changed_by)})</span>` : '';
+      items.push({
+        labelHTML: `<span style="color:${fromColor}">${Utils.esc(h.from_status || '?')}</span>`
+          + ` → <span style="color:${toColor}">${Utils.esc(h.to_status || '?')}</span>${who}`,
+        time: h.changed_at,
+        dot: toColor,
+      });
+    });
+
+    if (items.length === 0) {
+      return '<div style="color:var(--text-tertiary);font-size:13px">No transitions yet</div>';
+    }
+
+    const lineColor = 'var(--border-subtle)';
+
+    return `<div style="display:flex;flex-direction:column;gap:0">
+      ${items.map((item, i) => {
+        const isLast = i === items.length - 1;
+        const timeStr = item.time ? Utils.relTime(item.time) : '';
+        const titleStr = item.time ? new Date(item.time).toLocaleString() : '';
+        const labelContent = item.labelHTML
+          ? item.labelHTML
+          : `<span style="color:var(--text-secondary)">${Utils.esc(item.label || '')}</span>`;
+
+        return `<div style="display:flex;gap:10px;align-items:stretch">
+          <!-- dot + line -->
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:14px">
+            <div style="width:10px;height:10px;border-radius:50%;background:${item.dot};margin-top:3px;flex-shrink:0"></div>
+            ${!isLast ? `<div style="width:2px;flex:1;background:${lineColor};margin-top:2px;margin-bottom:2px"></div>` : ''}
+          </div>
+          <!-- content -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex:1;padding-bottom:${isLast ? '0' : '10px'}">
+            <div style="font-size:13px;line-height:18px">${labelContent}</div>
+            ${timeStr ? `<div style="font-size:11px;color:var(--text-tertiary);white-space:nowrap;margin-left:8px;flex-shrink:0"
+              title="${Utils.esc(titleStr)}">${Utils.esc(timeStr)}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
   },
 
   _closeDrawer() {

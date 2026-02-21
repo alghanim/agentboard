@@ -61,6 +61,8 @@ func main() {
 	openclawHandler := &handlers.OpenClawHandler{}
 	analyticsHandler := &handlers.AnalyticsHandler{}
 	brandingHandler := &handlers.BrandingHandler{}
+	searchHandler := &handlers.SearchHandler{}
+	performanceHandler := &handlers.PerformanceHandler{}
 
 	// Agent status poller
 	go handlers.StartAgentStatusPoller(hub)
@@ -124,6 +126,10 @@ func main() {
 	api.HandleFunc("/analytics/tokens", analyticsHandler.GetTokens).Methods("GET")
 	api.HandleFunc("/analytics/tokens/timeline", analyticsHandler.GetTokensTimeline).Methods("GET")
 	api.HandleFunc("/analytics/cost/summary", analyticsHandler.GetCostSummary).Methods("GET")
+	api.HandleFunc("/analytics/performance", performanceHandler.GetPerformance).Methods("GET")
+
+	// Global search
+	api.HandleFunc("/search", searchHandler.Search).Methods("GET")
 
 	// Structure (hierarchy from config)
 	api.HandleFunc("/structure", openclawHandler.GetStructure).Methods("GET")

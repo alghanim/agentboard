@@ -45,12 +45,13 @@ Pages.dashboard = {
 
   async _load() {
     try {
-      const [stats, agents, stream] = await Promise.all([
+      const [stats, agents, stream, stuckTasks] = await Promise.all([
         API.getStats(),
         API.getAgents(),
-        API.getStream(10)
+        API.getStream(10),
+        API.getStuckTasks().catch(() => []),
       ]);
-      this._renderStats(stats, agents);
+      this._renderStats(stats, agents, stuckTasks);
       this._renderAgents(agents);
       this._renderActivity(stream);
     } catch (e) {
@@ -58,23 +59,35 @@ Pages.dashboard = {
     }
   },
 
-  _renderStats(stats, agents) {
+  _renderStats(stats, agents, stuckTasks) {
     const grid = document.getElementById('statsGrid');
     if (!grid) return;
 
     const activeCount = agents.filter(a => a.status === 'active').length;
+    const stuckCount = Array.isArray(stuckTasks) ? stuckTasks.length : 0;
+
     const items = [
-      { num: stats.totalAgents || agents.length, label: 'Agents' },
-      { num: activeCount, label: 'Online Now' },
-      { num: stats.idleAgents || 0, label: 'Idle' },
-      { num: stats.offlineAgents || 0, label: 'Offline' },
+      { num: stats.totalAgents || agents.length, label: 'Agents', style: '' },
+      { num: activeCount, label: 'Online Now', style: '' },
+      { num: stats.idleAgents || 0, label: 'Idle', style: '' },
+      { num: stats.offlineAgents || 0, label: 'Offline', style: '' },
     ];
+
+    const stuckCard = stuckCount > 0
+      ? `<div class="stat-card" style="border-color:#F59E0B">
+          <div class="stat-number" style="color:#F59E0B">⚠️ ${stuckCount}</div>
+          <div class="stat-label" style="color:#F59E0B">Stuck Tasks</div>
+        </div>`
+      : `<div class="stat-card" style="opacity:0.5">
+          <div class="stat-number" style="color:var(--text-tertiary)">✓</div>
+          <div class="stat-label" style="color:var(--text-tertiary)">All Clear</div>
+        </div>`;
 
     grid.innerHTML = items.map(({ num, label }) => `
       <div class="stat-card">
         <div class="stat-number">${num}</div>
         <div class="stat-label">${label}</div>
-      </div>`).join('');
+      </div>`).join('') + stuckCard;
   },
 
   _renderAgents(agents) {
